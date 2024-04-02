@@ -6,10 +6,10 @@ Node.js script to format the DMARC Report XML files.
 
 It requires Node.js.
 
-1. Create a directory and save this script to a file named `dmarc-reporter.js`.
+1. Clone the repository.
 2. Save your DMARC report XML files to the same directory.
 3. Open a terminal and navigate to the directory.
-4. Run "npm install table xml2js" to install the required packages.
+4. Run "npm install" to install the required packages.
 5. Run the script with the command: `node dmarc-reporter.js *.xml`.
 
 
