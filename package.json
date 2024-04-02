@@ -1,0 +1,16 @@
+{
+  "name": "dmarc-reporter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dmark-reporter.js",
+  "dependencies": {
+    "xml2js": "^0.6.2",
+    "table": "^6.8.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT"
+}
