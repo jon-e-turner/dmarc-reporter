@@ -37,6 +37,9 @@ const parseFile = async function (fileName) {
   const reporter = json.report_metadata.org_name;
   const startDate = new Date(parseInt(json.report_metadata.date_range.begin) * 1000);
   const endDate = new Date(parseInt(json.report_metadata.date_range.end) * 1000);
+  if (!Array.isArray(json.record)) {
+    json.record = [json.record];
+  }
   const record = json.record.map((r) => {
     return [
       r.row.source_ip,
