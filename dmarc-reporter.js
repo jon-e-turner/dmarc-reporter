@@ -49,7 +49,7 @@ const parseFile = async function (fileName) {
       setTextColor(r.row.policy_evaluated.dkim),
       Array.isArray(r.auth_results.dkim)
         ? r.auth_results.dkim.map((x) => x.selector || "").join(", ")
-        : r.auth_results.dkim.selector || "",
+        : r.auth_results.dkim?.selector || "",
       r.identifiers.header_from || "",
       r.identifiers.envelope_from || "",
       r.identifiers.envelope_to || "",
