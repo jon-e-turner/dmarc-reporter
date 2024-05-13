@@ -17,16 +17,19 @@ import { promises } from "fs";
 import { table, getBorderCharacters } from "table";
 import { Parser } from "xml2js";
 import getopts from "getopts";
+import { fail } from "assert";
 
 const opts = {
   alias: {
     border: ["b", "B"],
     color: ["c", "C"],
+    failed: ["F"],
     help: ["h", "H", "?"]
   },
   default: {
     border: true,
     color: true,
+    failed: false,
     help: false
   }
 };
@@ -43,13 +46,13 @@ const setTextColor = function (text) {
 };
 
 const usage = function () {
-  console.log("Usage: node dmarc-reporter.js [--[no-]border] [--[no-]color] file1.xml file2.xml");
-  console.log("       node dmarc-reporter.js [--[no-]border] [--[no-]color] *.xml");
+  console.log("Usage: node dmarc-reporter.js [--[no-]border] [--[no-]color] --failed file1.xml file2.xml");
+  console.log("       node dmarc-reporter.js [--[no-]border] [--[no-]color] --failed *.xml");
   return;
 }
 
 // Parse a single file.
-const parseFile = async function (fileName, color = true) {
+const parseFile = async function (fileName, color = true, failed = false) {
   const data = await promises.readFile(fileName);
   let json = await parser.parseStringPromise(data);
   json = json.feedback;
@@ -57,38 +60,43 @@ const parseFile = async function (fileName, color = true) {
   const reporter = json.report_metadata.org_name;
   const startDate = new Date(parseInt(json.report_metadata.date_range.begin) * 1000);
   const endDate = new Date(parseInt(json.report_metadata.date_range.end) * 1000);
+
   if (!Array.isArray(json.record)) {
     json.record = [json.record];
   }
+
   const record = json.record.map((r) => {
-    return [
-      r.row.source_ip,
-      r.row.count,
-      color
-        ? setTextColor(r.row.policy_evaluated.spf)
-        : r.row.policy_evaluated.spf,
-      r.auth_results.spf.domain || "",
-      color
-        ? setTextColor(r.row.policy_evaluated.dkim)
-        : r.row.policy_evaluated.dkim,
-      Array.isArray(r.auth_results.dkim)
-        ? r.auth_results.dkim.map((x) => x.selector || "").join(", ")
-        : r.auth_results.dkim?.selector || "",
-      r.identifiers.header_from || "",
-      r.identifiers.envelope_from || "",
-      r.identifiers.envelope_to || "",
-      reporter,
-      startDate.toISOString().split("T")[0],
-      endDate.toISOString().split("T")[0],
-    ];
+    if (!failed || (r.row.policy_evaluated.spf === "fail" && r.row.policy_evaluated.dkim === "fail")) {
+      return [
+        r.row.source_ip,
+        r.row.count,
+        color
+          ? setTextColor(r.row.policy_evaluated.spf)
+          : r.row.policy_evaluated.spf,
+        r.auth_results.spf.domain || "",
+        color
+          ? setTextColor(r.row.policy_evaluated.dkim)
+          : r.row.policy_evaluated.dkim,
+        Array.isArray(r.auth_results.dkim)
+          ? r.auth_results.dkim.map((x) => x.selector || "").join(", ")
+          : r.auth_results.dkim?.selector || "",
+        r.identifiers.header_from || "",
+        r.identifiers.envelope_from || "",
+        r.identifiers.envelope_to || "",
+        reporter,
+        startDate.toISOString().split("T")[0],
+        endDate.toISOString().split("T")[0],
+      ];
+    }
   });
-  return record;
+
+  return record.filter((x) => x !== undefined);
 };
 
-const parseFiles = async function (fileNames, color = true, border = true) {
+const parseFiles = async function (fileNames, color = true, border = true, failed = false) {
   let records = [];
   for (let fileName of fileNames) {
-    let record = await parseFile(fileName, color);
+    let record = await parseFile(fileName, color, failed);
     records = records.concat(record);
   }
 
@@ -139,7 +147,7 @@ const main = async function (args) {
     return;
   }
 
-  return await parseFiles(options._, options.color, options.border);
+  return await parseFiles(options._, options.color, options.border, options.failed);
 };
 
 // Run it!
