@@ -13,11 +13,25 @@
  * 5. Run the script with the command: node dmarc-reporter.js file1.xml file2.xml ...
  *
  */
-const fs = require("fs"),
-  table = require("table"),
-  xml2js = require("xml2js");
+import { promises } from "fs";
+import { table, getBorderCharacters } from "table";
+import { Parser } from "xml2js";
+import getopts from "getopts";
 
-const parser = new xml2js.Parser({ explicitArray: false });
+const opts = {
+  alias: {
+    border: ["b", "B"],
+    color: ["c", "C"],
+    help: ["h", "H", "?"]
+  },
+  default: {
+    border: true,
+    color: true,
+    help: false
+  }
+};
+
+const parser = new Parser({ explicitArray: false });
 
 // Set color for pass/fail text.
 const setTextColor = function (text) {
@@ -28,9 +42,15 @@ const setTextColor = function (text) {
   }
 };
 
+const usage = function () {
+  console.log("Usage: node dmarc-reporter.js [--[no-]border] [--[no-]color] file1.xml file2.xml");
+  console.log("       node dmarc-reporter.js [--[no-]border] [--[no-]color] *.xml");
+  return;
+}
+
 // Parse a single file.
-const parseFile = async function (fileName) {
-  const data = await fs.promises.readFile(fileName);
+const parseFile = async function (fileName, color = true) {
+  const data = await promises.readFile(fileName);
   let json = await parser.parseStringPromise(data);
   json = json.feedback;
 
@@ -44,9 +64,13 @@ const parseFile = async function (fileName) {
     return [
       r.row.source_ip,
       r.row.count,
-      setTextColor(r.row.policy_evaluated.spf),
+      color
+        ? setTextColor(r.row.policy_evaluated.spf)
+        : r.row.policy_evaluated.spf,
       r.auth_results.spf.domain || "",
-      setTextColor(r.row.policy_evaluated.dkim),
+      color
+        ? setTextColor(r.row.policy_evaluated.dkim)
+        : r.row.policy_evaluated.dkim,
       Array.isArray(r.auth_results.dkim)
         ? r.auth_results.dkim.map((x) => x.selector || "").join(", ")
         : r.auth_results.dkim?.selector || "",
@@ -61,40 +85,62 @@ const parseFile = async function (fileName) {
   return record;
 };
 
-const parseFiles = async function (fileNames) {
+const parseFiles = async function (fileNames, color = true, border = true) {
   let records = [];
   for (let fileName of fileNames) {
-    let record = await parseFile(fileName);
+    let record = await parseFile(fileName, color);
     records = records.concat(record);
   }
 
   // Sort by start date.
   records.sort((a, b) => {
-    return a[a.length-2].localeCompare(b[b.length-2]);
+    return a[a.length - 2].localeCompare(b[b.length - 2]);
   });
 
   // Add header.
-  records.unshift([
-    "Source IP",
-    "Count",
-    "SPF",
-    "SPF Domain",
-    "DKIM",
-    "DKIM Selector",
-    "Header From",
-    "Envelope From",
-    "Envelope To",
-    "Reporter",
-    "Start Date",
-    "End Date",
-  ]);
-
+  if (border) {
+    records.unshift([
+      "Source IP",
+      "Count",
+      "SPF",
+      "SPF Domain",
+      "DKIM",
+      "DKIM Selector",
+      "Header From",
+      "Envelope From",
+      "Envelope To",
+      "Reporter",
+      "Start Date",
+      "End Date",
+    ]);
+  }
   // Output the table to the console.
   console.log(
-    table.table(records, { border: table.getBorderCharacters("norc") })
+    border ?
+      table(records, { border: getBorderCharacters('norc') }) :
+      table(records, {
+        border: getBorderCharacters('void'),
+        columnDefault: {
+          paddingLeft: 0,
+          paddingRight: 1,
+          alignment: 'left'
+        },
+        drawHorizontalLine: () => false
+      })
   );
   return records;
 };
 
+const main = async function (args) {
+  const options = getopts(args, opts);
+
+  if (options.help || options._ === undefined || options._.length == 0) {
+    usage();
+    return;
+  }
+
+  return await parseFiles(options._, options.color, options.border);
+};
+
 // Run it!
-parseFiles(process.argv.slice(2));
+main(process.argv.slice(2));
