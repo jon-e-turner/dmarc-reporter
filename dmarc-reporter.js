@@ -122,19 +122,22 @@ const parseFiles = async function (fileNames, color = true, border = true, faile
     ]);
   }
   // Output the table to the console.
-  console.log(
-    border ?
-      table(records, { border: getBorderCharacters('norc') }) :
-      table(records, {
-        border: getBorderCharacters('void'),
-        columnDefault: {
-          paddingLeft: 0,
-          paddingRight: 1,
-          alignment: 'left'
-        },
-        drawHorizontalLine: () => false
-      })
-  );
+  if (records.length > 0) {
+    console.log(
+      border ?
+        table(records, { border: getBorderCharacters('norc') }) :
+        table(records, {
+          border: getBorderCharacters('void'),
+          columnDefault: {
+            paddingLeft: 0,
+            paddingRight: 1,
+            alignment: 'left'
+          },
+          drawHorizontalLine: () => false
+        })
+    );
+  }
+
   return records;
 };
 
