@@ -17,7 +17,6 @@ import { promises } from "fs";
 import { table, getBorderCharacters } from "table";
 import { Parser } from "xml2js";
 import getopts from "getopts";
-import { fail } from "assert";
 
 const opts = {
   alias: {
@@ -46,8 +45,8 @@ const setTextColor = function (text) {
 };
 
 const usage = function () {
-  console.log("Usage: node dmarc-reporter.js [--[no-]border] [--[no-]color] --failed file1.xml file2.xml");
-  console.log("       node dmarc-reporter.js [--[no-]border] [--[no-]color] --failed *.xml");
+  console.log("Usage: node dmarc-reporter.js [--[no-]border] [--[no-]color] [--failed] file1.xml file2.xml");
+  console.log("       node dmarc-reporter.js [--[no-]border] [--[no-]color] [--failed] *.xml");
   return;
 }
 
